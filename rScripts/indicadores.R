@@ -2,7 +2,7 @@ library(tidyverse)
 library(leaflet)
 library(sf)
 
-#capas geo. Dejar todo en 4326 y GKBA
+#capas geo. Dejar todo en 4326 y GKBA 
 radios <- st_read("data/indicadores/radios.gpkg") #4326
 et <- st_read("data/et.gpkg") #posgar 2007 faja 6
 
@@ -44,7 +44,16 @@ rm(interseccion, etBuffer_gk,radiosCentroides_gk) #Borramos Basura
 
 
 #ESPACIOS VERDES
+ 
+#SAU1 - Superficie de Espacios verdes en toda el área de influencia por cantidad de habitantes
+ espaciosVerdesArea_gk <- st_area(espaciosVerdes_gk)
+ espaciosVerdes_gk["area_2021"] <-as.numeric( espaciosVerdesArea_gk)
+ verdes <- st_intersection(st_centroid(espaciosVerdes_gk),radios_gk[,5]) %>%
+            as.data.frame() %>% select(-geom) %>% group_by(REDCODE) %>% summarise(verdes=sum(area_2021))
 
+ SUA1 <- radiosET[,5]
+ 
+ #################### SAU 2
 
 #hay que calcular la distancia de cada centroide de manzana a espacio verde, luego promediar elcentroide de manzana segun el radio
 #al que pertenecen
@@ -73,13 +82,19 @@ rm(a)
 
 
 distEspVerdes <- manzanas %>% as.data.frame() %>% select(-geom) %>% 
-                          group_by(REDCODE.x,Nombre) %>% summarise(SAU2=mean(distanciaVerdes))
+                          group_by(REDCODE.x,Nombre) %>% summarise(promedio=mean(distanciaVerdes)) %>%
+                          mutate(SAU2= case_when(
+                            promedio<500 ~1,
+                            promedio<750 ~0.5,
+                            promedio<1000 ~.25,
+                            promedio>1000 ~0
+                                                     ))
 
 
 
 
 
-
+st_write(manzanas[,-1], 'manzanasBorrar.gpkg')
 
 
 
